@@ -72,7 +72,7 @@ const char* ssid = "text";
 const char* passphrase = "text";
 String st;
 String content;
-int rec_count = 0;
+
 // Global variable
 String firstValue, sssid, secondValue, pswd, thirdvalue, brokeradd, fourthvalue, port, fifthvalue, ptp1, sixthvalue, ptp2, seventhvalue, ptp3, eigthvalue, stp1, ninthvalue, ip01;
 String tenthvalue, i1ce, eleventhvalue, i1tc, tewelthvalue, i1tw, thirteenthvalue, ip02, fourteenthvalue, i2ce, fifteenthvalue, i2it,  sixteenthvalue, i2ma, seventeenthvalue, i2mi;
@@ -884,72 +884,6 @@ void callback(char* topic, byte* message, unsigned int length) {
   delay(5000);
   if (macadd.equalsIgnoreCase(datamacid)) {
     Serial.println("mac passed");
-    if (cmdtype == 1) {
-      if (inputid == 1) {
-        float multifac = subdata["data"]["coef_value"];
-        String MF = String(multifac);
-        Serial.println("Received value");
-        Serial.println(MF);
-        Serial.println("Clearing EEPROM");
-        for (i = 184; i < 188; ++i) {
-          EEPROM.write(i, 0);
-        }
-        Serial.println("Writing EEPROM mqtt i1ce");
-        for (i = 0; i < MF.length() ; ++i) {
-          EEPROM.write(184 + i, MF[i]);
-          Serial.println("wrote");
-          Serial.println(MF[i]);
-        }
-        EEPROM.commit();
-        delay(1000);
-      }
-      if (inputid == 2) {
-        float multifac = subdata["data"]["coef_value"];
-        String MF = String(multifac);
-        Serial.println("Received value");
-        Serial.println(MF);
-        Serial.println("Clearing EEPROM");
-        for (i = 194; i < 198; ++i) {
-          EEPROM.write(i, 0);
-        }
-        for (i = 0; i < MF.length() ; ++i) {
-          EEPROM.write(194 + i, MF[i]);
-          Serial.println("wrote");
-          Serial.println(MF[i]);
-        }
-        EEPROM.commit();
-        delay(1000);
-      }
-      if (inputid == 3) {
-        float multifac = subdata["data"]["coef_value"];
-        String MF = String(multifac);
-        Serial.println("Received value");
-        Serial.println(MF);
-        Serial.println("Clearing EEPROM");
-        for (i = 200; i < 205; ++i) {
-          EEPROM.write(i, 0);
-        }
-        for (i = 0; i < MF.length() ; ++i) {
-          EEPROM.write(200 + i, MF[i]);
-          Serial.println("wrote");
-          Serial.println(MF[i]);
-        }
-        EEPROM.commit();
-        delay(1000);
-      }
-      StaticJsonDocument<150> retdoc;
-      JsonObject JSONencoder = retdoc.to<JsonObject>();
-      JSONencoder["mac"] = macadd;
-      JSONencoder["cmdid"] = cmdidr;
-      JSONencoder["cmdtypeid"] = cmdtype;
-      JSONencoder["code"] = 200;
-      JSONencoder["message"] = "success";
-      char buffer[150];
-      serializeJson(JSONencoder, buffer);
-      Serial.println(buffer);
-      ptp3.toCharArray(ptp3char, 50);
-      rc = client.publish(ptp3char, buffer, retain);
-    }
     if (cmdtype == 2) {
       String cmdddur = subdata["data"]["interval"];
       Serial.println(cmdddur);
@@ -1041,8 +975,6 @@ void callback(char* topic, byte* message, unsigned int length) {
       Serial.println(buffer);
       ptp3.toCharArray(ptp3char, 50);
       rc = client.publish(ptp3char, buffer, retain);
-      digitalWrite(wifistatusled, LOW);
-      digitalWrite(mqttstatusled, LOW);
       delay(1000);
       formattedDate = timeClient.getFormattedDate();
       StaticJsonDocument<150> doc2;
@@ -1159,7 +1091,6 @@ void callback(char* topic, byte* message, unsigned int length) {
 }
 void reconnect() {
   while (!client.connected()) {
-    digitalWrite(mqtttatusled, LOW);
     Serial.print("Attempting MQTT connection...");
     digitalWrite(mqttstatusled, LOW);
     formattedDate = timeClient.getFormattedDate();
@@ -1173,7 +1104,6 @@ void reconnect() {
     Serial.println(buffer2);
     flager = 1;
     if (client.connect(cid, mqtt_name, mqtt_pwd, "ConnectionStatus", 2, false, buffer2)) {
-      rec_count = 0;
       Serial.println("connected");
       digitalWrite(mqttstatusled, HIGH);
       Serial.println(topic_in);
@@ -1182,23 +1112,9 @@ void reconnect() {
       loop();
       break;
     } else {
-      digitalWrite(mqttstatusled, LOW);
-      WiFi.begin(epssid.c_str(), eppswd.c_str());
-      if (testWifi()) {
-        Serial.println("Succesfully Connected!!!");
-        digitalWrite(wifistatusled, HIGH);
-      }
-      else {
-        Serial.println("Wifi Disconnected!!!");
-        digitalWrite(wifistatusled, LOW);
-        ESP.restart();
-      }
       Serial.print("failed, rc=");
-      Serial.println(client.state());
+      Serial.print(client.state());
       flager = 1;
-      rec_count = rec_count + 1;
-      Serial.println(rec_count);
-      Serial.println("----------------");
       Serial.println(" try again in 5 seconds");
       buttonState = digitalRead(resetbutton);
       Serial.print("buttonState = ");
@@ -1223,11 +1139,6 @@ void reconnect() {
         delay(500);
         ESP.restart();
       }
-    }
-    if (rec_count > 30) {
-      Serial.println("Restart");
-      delay(500);
-      ESP.restart();
     }
   }
   connectflag = 1;
@@ -1772,9 +1683,9 @@ void loop() {
       data_gen3(mtag3, register5, register6);
       if (millis() > time_now + period) {
         time_now = millis();
-        //client.publish("TagData", tagdata1, retain);
-        //client.publish("TagData", tagdata2, retain);
-        //client.publish("TagData", tagdata3, retain);
+        client.publish("TagData", tagdata1, retain);
+        client.publish("TagData", tagdata2, retain);
+        client.publish("TagData", tagdata3, retain);
       }
     }
     else {
@@ -1935,10 +1846,9 @@ bool testWifi(void) {
     delay(500);
     digitalWrite(wifistatusled, LOW);
     Serial.println("Connecting..");
-    if (c > 30) {
+    if (c > 100) {
       ESP.restart();
     }
-    Serial.println(c);
     c++;
   }
   Serial.println("Connect timeout");
