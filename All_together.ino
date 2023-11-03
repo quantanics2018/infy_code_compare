@@ -1159,7 +1159,7 @@ void callback(char* topic, byte* message, unsigned int length) {
 }
 void reconnect() {
   while (!client.connected()) {
-    digitalWrite(mqtttatusled, LOW);
+    digitalWrite(mqttstatusled, LOW);
     Serial.print("Attempting MQTT connection...");
     digitalWrite(mqttstatusled, LOW);
     formattedDate = timeClient.getFormattedDate();
